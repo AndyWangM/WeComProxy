@@ -1,0 +1,26 @@
+{
+  "alert_app": {
+    "name": "告警通知应用",
+    "corpid": "ww1234567890abcdef",
+    "corpsecret": "your_app_secret_here_32_characters_long",
+    "agentid": 1000001,
+    "proxy_url": "http://your-proxy-server.com",
+    "target_users": "user001|user002|user003",
+    "target_parties": "1|2",
+    "target_tags": "",
+    "message_format": "发送人：{sender}\n时间：{time}\n内容：{content}",
+    "enabled": true
+  },
+  "business_app": {
+    "name": "业务通知应用",
+    "corpid": "ww1234567890abcdef",
+    "corpsecret": "another_app_secret_here_32_chars",
+    "agentid": 1000002,
+    "proxy_url": "",
+    "target_users": "@all",
+    "target_parties": "",
+    "target_tags": "business|important",
+    "message_format": "🔔 {sender} ({time}):\n{content}",
+    "enabled": true
+  }
+}

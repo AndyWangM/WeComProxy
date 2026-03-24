@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeComProxy 管理界面</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 WeComProxy 管理界面</h1>
+            <p>企业微信消息推送代理服务</p>
+            <div class="stats" id="stats">
+                <span class="stat-item">应用总数: <span id="total-apps">-</span></span>
+                <span class="stat-item">启用应用: <span id="enabled-apps">-</span></span>
+                <span class="stat-item">有效Token: <span id="valid-tokens">-</span></span>
+            </div>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('apps')">应用管理</button>
+            <button class="tab-btn" onclick="showTab('test')">消息测试</button>
+            <button class="tab-btn" onclick="showTab('auth')">Token管理</button>
+            <button class="tab-btn" onclick="showTab('docs')">API文档</button>
+        </nav>
+
+        <!-- 应用管理标签页 -->
+        <div id="apps-tab" class="tab-content active">
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="showAddAppModal()">➕ 添加应用</button>
+                <button class="btn btn-secondary" onclick="refreshApps()">🔄 刷新</button>
+            </div>
+
+            <div class="apps-list" id="apps-list">
+                <!-- 应用列表将动态生成 -->
+            </div>
+        </div>
+
+        <!-- 消息测试标签页 -->
+        <div id="test-tab" class="tab-content">
+            <div class="test-form">
+                <h3>📤 发送测试消息</h3>
+                <form id="test-form">
+                    <div class="form-group">
+                        <label>选择应用:</label>
+                        <select id="test-app-select" required>
+                            <option value="">请选择应用</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>发送人:</label>
+                        <input type="text" id="test-sender" value="系统测试" required>
+                    </div>
+                    <div class="form-group">
+                        <label>时间:</label>
+                        <input type="text" id="test-time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>消息内容:</label>
+                        <textarea id="test-content" rows="4" required>这是一条测试消息，用于验证企业微信代理服务是否正常工作。</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">发送测试消息</button>
+                </form>
+                <div id="test-result" class="result-area"></div>
+            </div>
+        </div>
+
+        <!-- Token管理标签页 -->
+        <div id="auth-tab" class="tab-content">
+            <div class="auth-management">
+                <h3>🔑 API Token 管理</h3>
+
+                <div class="token-info" id="token-info">
+                    <div class="info-card">
+                        <h4>当前Token信息</h4>
+                        <div class="token-details">
+                            <div class="detail-item">
+                                <label>Token (部分显示):</label>
+                                <code id="current-token">loading...</code>
+                            </div>
+                            <div class="detail-item">
+                                <label>创建时间:</label>
+                                <span id="token-created">loading...</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>更新时间:</label>
+                                <span id="token-updated">loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="token-actions">
+                    <button class="btn btn-primary" onclick="admin.loadTokenInfo()">🔄 刷新信息</button>
+                    <button class="btn btn-danger" onclick="admin.regenerateToken()">🔥 重新生成Token</button>
+                    <button class="btn btn-secondary" onclick="admin.logout()">🚪 退出登录</button>
+                </div>
+
+                <div class="token-usage">
+                    <h4>💡 使用说明</h4>
+                    <div class="usage-info">
+                        <p><strong>API调用示例:</strong></p>
+                        <pre>curl -X POST http://localhost:3000/webhook/alert_app \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"sender": "监控系统", "time": "2024-03-24 15:00:00", "content": "服务器状态异常"}'</pre>
+
+                        <div class="warning-box">
+                            <strong>⚠️ 安全提醒:</strong>
+                            <ul>
+                                <li>Token是访问API的唯一凭证，请妥善保管</li>
+                                <li>不要在公共场所或不安全的环境中暴露Token</li>
+                                <li>如果Token泄露，请立即重新生成新Token</li>
+                                <li>建议定期更换Token以提高安全性</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API文档标签页 -->
+        <div id="docs-tab" class="tab-content">
+            <div class="api-docs">
+                <h3>📋 API接口文档</h3>
+
+                <div class="api-section">
+                    <h4>🔗 Webhook接口</h4>
+                    <div class="api-endpoint">
+                        <div class="method post">POST</div>
+                        <code>/webhook/alert_app</code>
+                        <p>发送消息到企业微信</p>
+                    </div>
+                    <div class="api-example">
+                        <strong>请求示例:</strong>
+                        <pre>curl -X POST http://localhost:3000/webhook/your_app_id \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sender": "监控系统",
+    "time": "2024-03-24 14:30:00",
+    "content": "系统告警信息"
+  }'</pre>
+                    </div>
+                </div>
+
+                <div class="api-section">
+                    <h4>⚙️ 管理接口</h4>
+                    <div class="api-list">
+                        <div class="api-item">
+                            <span class="method get">GET</span>
+                            <code>/api/apps</code>
+                            <span>获取所有应用</span>
+                        </div>
+                        <div class="api-item">
+                            <span class="method post">POST</span>
+                            <code>/api/apps</code>
+                            <span>创建新应用</span>
+                        </div>
+                        <div class="api-item">
+                            <span class="method put">PUT</span>
+                            <code>/api/apps/{app_id}</code>
+                            <span>更新应用配置</span>
+                        </div>
+                        <div class="api-item">
+                            <span class="method delete">DELETE</span>
+                            <code>/api/apps/{app_id}</code>
+                            <span>删除应用</span>
+                        </div>
+                        <div class="api-item">
+                            <span class="method post">POST</span>
+                            <code>/api/test/{app_id}</code>
+                            <span>测试应用</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑应用模态框 -->
+    <div id="app-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">添加应用</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="app-form">
+                <div class="form-group">
+                    <label>应用ID *:</label>
+                    <input type="text" id="app-id" required placeholder="例如: alert_app">
+                </div>
+                <div class="form-group">
+                    <label>应用名称 *:</label>
+                    <input type="text" id="app-name" required placeholder="例如: 告警通知应用">
+                </div>
+                <div class="form-group">
+                    <label>企业ID *:</label>
+                    <input type="text" id="app-corpid" required placeholder="例如: ww1234567890abcdef">
+                </div>
+                <div class="form-group">
+                    <label>应用密钥 *:</label>
+                    <input type="password" id="app-corpsecret" required placeholder="32字符长度的应用密钥">
+                </div>
+                <div class="form-group">
+                    <label>应用ID (数字) *:</label>
+                    <input type="number" id="app-agentid" required placeholder="例如: 1000001">
+                </div>
+                <div class="form-group">
+                    <label>代理URL:</label>
+                    <input type="url" id="app-proxy-url" placeholder="http://your-proxy-server.com">
+                </div>
+                <div class="form-group">
+                    <label>接收用户:</label>
+                    <input type="text" id="app-target-users" placeholder="@all 或 user001|user002">
+                </div>
+                <div class="form-group">
+                    <label>接收部门:</label>
+                    <input type="text" id="app-target-parties" placeholder="1|2|3">
+                </div>
+                <div class="form-group">
+                    <label>消息模板:</label>
+                    <textarea id="app-message-format" rows="3" placeholder="发送人：{sender}\n时间：{time}\n内容：{content}">发送人：{sender}
+时间：{time}
+内容：{content}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="app-enabled" checked> 启用应用
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

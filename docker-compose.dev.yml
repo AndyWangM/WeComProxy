@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  wecom-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wecom-proxy:dev
+    container_name: wecom-proxy-dev
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "3000:3000"
+
+    # 数据卷挂载 - 开发模式
+    volumes:
+      # 挂载源代码 (开发模式热重载)
+      - ./src:/app/src
+      - ./web:/app/web
+
+      # 挂载数据目录
+      - ./data:/app/data
+
+      # 挂载配置文件 (方便调试)
+      - ./package.json:/app/package.json
+
+    # 开发环境变量
+    environment:
+      # 开发模式
+      - NODE_ENV=development
+      - PORT=3000
+      - HOST=0.0.0.0
+
+      # 数据目录
+      - DATA_DIR=/app/data
+
+      # 开发日志
+      - LOG_LEVEL=debug
+
+      # 忽略SSL证书 (开发环境)
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+
+    # 开发命令 (使用nodemon自动重启)
+    command: ["node", "--watch", "src/index.js"]
+
+    # 健康检查 (开发模式简化)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/stats", "||", "exit", "1"]
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
+
+    # 开发模式不限制资源
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+    # 开发日志 (更详细)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# 开发网络
+networks:
+  default:
+    name: wecom-proxy-dev-network

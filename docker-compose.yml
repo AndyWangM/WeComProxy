@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  wecom-proxy:
+    image: ghcr.io/andywangm/wecomproxy:latest
+    container_name: wecom-proxy
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "3000:3000"
+
+    # 数据卷挂载
+    volumes:
+      - ./data:/app/data
+
+    # 环境变量
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=info
+      - BACKUP_RETENTION_DAYS=30
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http=require('http');const options={host:'localhost',port:3000,path:'/api/stats',timeout:3000};const req=http.request(options,res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+# 网络配置
+networks:
+  default:
+    name: wecom-proxy-network

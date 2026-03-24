@@ -1,0 +1,49 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 日志文件
+logs/
+*.log
+
+# 数据目录（避免覆盖挂载的数据）
+data/
+
+# 缓存目录
+.cache/
+.npm/
+
+# 临时文件
+.tmp/
+temp/
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# 文档
+README.md
+*.md
+
+# 脚本
+scripts/
+
+# 测试文件
+test/
+*.test.js

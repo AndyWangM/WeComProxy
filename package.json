@@ -1,0 +1,61 @@
+{
+  "name": "wecom-proxy",
+  "version": "1.0.0",
+  "description": "企业微信消息推送代理服务 - 支持多应用配置、Web管理界面和Docker部署",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "dev:win": "set NODE_ENV=development && node --watch src/index.js",
+    "test": "node test/test.js",
+    "example": "node examples/example-usage.js",
+    "get-users": "node tools/get-users.js",
+    "docker:build": "./scripts/build.sh",
+    "docker:run": "./scripts/run.sh",
+    "docker:deploy": "./scripts/deploy.sh"
+  },
+  "keywords": [
+    "wecom",
+    "wechat",
+    "webhook",
+    "proxy",
+    "notification",
+    "enterprise",
+    "docker",
+    "nodejs"
+  ],
+  "author": {
+    "name": "Andy",
+    "email": "394090975@qq.com"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "undici": "^5.28.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/wecom-proxy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/wecom-proxy/issues"
+  },
+  "homepage": "https://github.com/your-org/wecom-proxy#readme",
+  "directories": {
+    "test": "test",
+    "example": "examples"
+  },
+  "files": [
+    "src/",
+    "web/",
+    "scripts/",
+    "examples/",
+    "Dockerfile",
+    "docker-compose.yml",
+    "README.md",
+    "CHANGELOG.md"
+  ]
+}

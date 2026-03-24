@@ -1,0 +1,281 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract version
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "# 🎉 What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          # Get commits since previous tag
+          git log ${PREVIOUS_TAG}..HEAD --pretty=format:"* %s (%an)" --no-merges >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        else
+          echo "# 🎉 Initial Release" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        fi
+
+        # Add Docker info
+        echo "## 🐳 Docker Images" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "This release is available as Docker images supporting multiple architectures:" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### Available Tags:" >> CHANGELOG.md
+        echo "- \`ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}\`" >> CHANGELOG.md
+        echo "- \`ghcr.io/${{ github.repository }}:latest\`" >> CHANGELOG.md
+
+        # Extract major.minor for additional tags
+        VERSION="${{ steps.version.outputs.version_number }}"
+        MAJOR=$(echo $VERSION | cut -d. -f1)
+        MINOR=$(echo $VERSION | cut -d. -f1-2)
+
+        if [ "$VERSION" != "$MINOR" ]; then
+          echo "- \`ghcr.io/${{ github.repository }}:${MINOR}\`" >> CHANGELOG.md
+        fi
+        if [ "$VERSION" != "$MAJOR" ] && [ "$MINOR" != "$MAJOR" ]; then
+          echo "- \`ghcr.io/${{ github.repository }}:${MAJOR}\`" >> CHANGELOG.md
+        fi
+
+        echo "" >> CHANGELOG.md
+        echo "### Quick Start:" >> CHANGELOG.md
+        echo "\`\`\`bash" >> CHANGELOG.md
+        echo "# Using specific version" >> CHANGELOG.md
+        echo "docker run -d \\" >> CHANGELOG.md
+        echo "  --name wecom-proxy \\" >> CHANGELOG.md
+        echo "  --restart unless-stopped \\" >> CHANGELOG.md
+        echo "  -p 3000:3000 \\" >> CHANGELOG.md
+        echo "  -v \$(pwd)/data:/app/data \\" >> CHANGELOG.md
+        echo "  ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "# Using latest" >> CHANGELOG.md
+        echo "docker run -d \\" >> CHANGELOG.md
+        echo "  --name wecom-proxy \\" >> CHANGELOG.md
+        echo "  --restart unless-stopped \\" >> CHANGELOG.md
+        echo "  -p 3000:3000 \\" >> CHANGELOG.md
+        echo "  -v \$(pwd)/data:/app/data \\" >> CHANGELOG.md
+        echo "  ghcr.io/${{ github.repository }}:latest" >> CHANGELOG.md
+        echo "\`\`\`" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### With Docker Compose:" >> CHANGELOG.md
+        echo "\`\`\`bash" >> CHANGELOG.md
+        echo "curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml" >> CHANGELOG.md
+        echo "mkdir -p data/config" >> CHANGELOG.md
+        echo "# Edit data/config/apps.json with your WeChat Work configuration" >> CHANGELOG.md
+        echo "docker-compose up -d" >> CHANGELOG.md
+        echo "\`\`\`" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### Platform Support:" >> CHANGELOG.md
+        echo "- ✅ **linux/amd64** (Intel/AMD 64-bit)" >> CHANGELOG.md
+        echo "- ✅ **linux/arm64** (ARM 64-bit, Apple Silicon, Raspberry Pi 4+)" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### Security:" >> CHANGELOG.md
+        echo "All images are signed and include build provenance attestation." >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### 📦 Source Code Downloads:" >> CHANGELOG.md
+        echo "- **Linux/macOS**: \`wecomproxy-${{ steps.version.outputs.version }}-source.tar.gz\`" >> CHANGELOG.md
+        echo "- **Windows**: \`wecomproxy-${{ steps.version.outputs.version }}-source.zip\`" >> CHANGELOG.md
+        echo "- **Checksums**: \`checksums.txt\`" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "> 💡 **提示**: 推荐直接使用Docker镜像，无需下载源码。源码包主要用于二次开发和审查。" >> CHANGELOG.md
+
+    - name: Create Release
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+
+          try {
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.version.outputs.version }}',
+              name: 'WeComProxy ${{ steps.version.outputs.version }}',
+              body: changelog,
+              draft: false,
+              prerelease: false
+            });
+
+            console.log(`Created release: ${release.html_url}`);
+          } catch (error) {
+            if (error.status === 422) {
+              console.log('Release already exists, updating...');
+
+              const { data: existingRelease } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: '${{ steps.version.outputs.version }}'
+              });
+
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: existingRelease.id,
+                body: changelog
+              });
+
+              console.log(`Updated existing release: ${existingRelease.html_url}`);
+            } else {
+              throw error;
+            }
+          }
+
+    - name: Upload Release Assets
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          // Get release info
+          let release;
+          try {
+            const { data } = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: '${{ steps.version.outputs.version }}'
+            });
+            release = data;
+          } catch (error) {
+            console.error('Failed to get release:', error);
+            return;
+          }
+
+          // Upload source archives
+          const assetsDir = 'release-assets';
+          const files = fs.readdirSync(assetsDir);
+
+          for (const file of files) {
+            const filePath = path.join(assetsDir, file);
+            const fileContent = fs.readFileSync(filePath);
+
+            console.log(`Uploading ${file}...`);
+
+            try {
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name: file,
+                data: fileContent
+              });
+              console.log(`✅ Uploaded ${file}`);
+            } catch (error) {
+              console.error(`❌ Failed to upload ${file}:`, error.message);
+            }
+          }
+
+    - name: Generate artifact attestation
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+        subject-digest: ${{ steps.build.outputs.digest }}
+        push-to-registry: true
+
+    - name: Create source code archives
+      run: |
+        # Create clean source archive (exclude .git, node_modules, data, etc.)
+        mkdir -p release-assets
+
+        # Create tar.gz archive
+        tar --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='data/cache' \
+            --exclude='data/logs' \
+            --exclude='data/config/apps.json' \
+            --exclude='data/config/auth.json' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            --exclude='Thumbs.db' \
+            -czf "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.tar.gz" \
+            --transform "s,^,wecomproxy-${{ steps.version.outputs.version }}/," \
+            .
+
+        # Create zip archive for Windows users
+        zip -r "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.zip" . \
+            -x ".git/*" \
+            -x "node_modules/*" \
+            -x "data/cache/*" \
+            -x "data/logs/*" \
+            -x "data/config/apps.json" \
+            -x "data/config/auth.json" \
+            -x "*.log" \
+            -x ".DS_Store" \
+            -x "Thumbs.db"
+
+        # Create checksums
+        cd release-assets
+        sha256sum *.tar.gz *.zip > checksums.txt
+        cd ..
+
+        # List created files
+        ls -la release-assets/

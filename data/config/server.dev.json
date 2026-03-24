@@ -1,0 +1,11 @@
+{
+  "port": 3000,
+  "host": "0.0.0.0",
+  "base_path": "",
+  "log_level": "debug",
+  "backup_retention_days": 7,
+  "token_cache_dir": "../data/cache",
+  "log_dir": "../data/logs",
+  "global_proxy": "http://your-corporate-proxy:8080",
+  "ignore_ssl_errors": true
+}

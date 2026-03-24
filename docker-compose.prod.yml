@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  wecom-proxy:
+    image: ghcr.io/andywangm/wecomproxy:latest
+    container_name: wecom-proxy
+    restart: unless-stopped
+
+    # 端口映射
+    ports:
+      - "3000:3000"
+
+    # 数据卷挂载
+    volumes:
+      # 方式1: 完整数据目录挂载 (推荐)
+      - ./wecom-data:/app/data
+
+      # 方式2: 分目录挂载 (可选，注释掉上面一行，启用下面三行)
+      # - ./wecom-config:/app/data/config
+      # - ./wecom-cache:/app/data/cache
+      # - ./wecom-logs:/app/data/logs
+
+    # 环境变量配置
+    environment:
+      # 基本配置
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+
+      # 如果需要二级路径部署，取消注释
+      # - BASE_PATH=/wecom-proxy
+
+      # 数据目录
+      - DATA_DIR=/app/data
+
+      # 日志配置
+      - LOG_LEVEL=info
+
+      # 备份保留天数
+      - BACKUP_RETENTION_DAYS=30
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http=require('http');const options={host:'localhost',port:3000,path:'/api/stats',timeout:3000};const req=http.request(options,res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.end();"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 网络配置
+networks:
+  default:
+    name: wecom-proxy-network
+    driver: bridge
+
+# 数据卷定义 (如果需要命名卷)
+volumes:
+  wecom-data:
+    driver: local
+  wecom-config:
+    driver: local
+  wecom-cache:
+    driver: local
+  wecom-logs:
+    driver: local
