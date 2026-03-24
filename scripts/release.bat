@@ -11,16 +11,19 @@ if "%version%"=="" (
     set /p "version=Enter version number (e.g., 1.0.1): "
 )
 
-:: Validate version format (basic check)
-echo %version% | findstr /r "^[0-9]*\.[0-9]*\.[0-9]*$" >nul
+:: Validate version format (use PowerShell for better regex support)
+powershell -Command "if ('%version%' -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { exit 1 }"
 if errorlevel 1 (
-    echo ❌ Invalid version format. Use semantic versioning (e.g., 1.0.1)
+    echo ❌ Invalid version format. Use semantic versioning (e.g., 1.0.0)
     exit /b 1
 )
 
 :: Check if git is clean
-for /f %%i in ('git status --porcelain') do (
+git diff --quiet && git diff --cached --quiet
+if errorlevel 1 (
     echo ❌ Git working directory is not clean. Please commit or stash your changes.
+    echo.
+    git status --short
     exit /b 1
 )
 
@@ -42,6 +45,9 @@ echo.
 echo 🚀 WeComProxy Release Script
 echo.
 echo ℹ️  Preparing release for version %version%
+echo ✅ Version format validated
+echo ✅ Git working directory clean
+echo ✅ On main branch
 echo.
 
 :: Show what will happen
