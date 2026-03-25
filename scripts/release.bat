@@ -141,12 +141,7 @@ if exist "CHANGELOG.md" (
 :: Commit changes
 echo Committing version changes...
 git add package.json CHANGELOG.md
-git commit -m "chore: bump version to %version%
-
-- Updated package.json version
-- Updated CHANGELOG.md with release notes
-
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+git commit -m "chore: bump version to %version%" -m "Updated package.json version" -m "Updated CHANGELOG.md with release notes" -m "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 
 if errorlevel 1 (
     echo Failed to commit changes
