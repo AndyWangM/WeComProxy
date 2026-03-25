@@ -1,4 +1,18 @@
-# Changelog
+# Changelog 
+ 
+## [1.0.1] -  
+ 
+### Added 
+- New features and enhancements 
+ 
+### Changed 
+- Updates and improvements 
+ 
+### Fixed 
+- Bug fixes 
+ 
+--- 
+ 
 
 All notable changes to this project will be documented in this file.
 
