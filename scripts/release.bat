@@ -7,45 +7,45 @@ setlocal enabledelayedexpansion
 
 :: Check if version is provided
 set "version=%1"
-echo ℹ️  Checking version parameter: %version%
+echo Checking version parameter: %version%
 
 if "%version%"=="" (
-    echo ℹ️  No version provided, prompting user...
+    echo No version provided, prompting user...
     set /p "version=Enter version number (e.g., 1.0.1): "
 )
 
-echo ℹ️  Using version: %version%
+echo Using version: %version%
 
-:: Validate version format (simple approach for better compatibility)
-echo %version% | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
+:: Validate version format (very simple - just check for dots)
+echo %version% | findstr ".*\..*\." >nul
 if errorlevel 1 (
-    echo ❌ Invalid version format. Use semantic versioning (e.g., 1.0.0)
-    echo ℹ️  Expected format: X.Y.Z (where X, Y, Z are numbers)
+    echo Invalid version format. Use semantic versioning like 1.0.1
+    echo Expected format: X.Y.Z where X, Y, Z are numbers
     exit /b 1
 )
-echo ✅ Version format validated
+echo Version format validated: %version%
 
 :: Check if git is clean
-echo ℹ️  Checking git status...
+echo Checking git status...
 git diff --quiet
 set diff_result=%errorlevel%
 git diff --cached --quiet
 set cached_result=%errorlevel%
 
 if %diff_result% neq 0 (
-    echo ❌ Git working directory has unstaged changes. Please commit or stash your changes.
+    echo Git working directory has unstaged changes. Please commit or stash your changes.
     echo.
     git status --short
     exit /b 1
 )
 
 if %cached_result% neq 0 (
-    echo ❌ Git working directory has staged changes. Please commit or stash your changes.
+    echo Git working directory has staged changes. Please commit or stash your changes.
     echo.
     git status --short
     exit /b 1
 )
-echo ✅ Git working directory clean
+echo Git working directory clean
 
 :: Check if on main branch
 for /f %%i in ('git rev-parse --abbrev-ref HEAD') do set "current_branch=%%i"
