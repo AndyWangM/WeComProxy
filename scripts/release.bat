@@ -7,25 +7,45 @@ setlocal enabledelayedexpansion
 
 :: Check if version is provided
 set "version=%1"
+echo ℹ️  Checking version parameter: %version%
+
 if "%version%"=="" (
+    echo ℹ️  No version provided, prompting user...
     set /p "version=Enter version number (e.g., 1.0.1): "
 )
 
-:: Validate version format (use PowerShell for better regex support)
-powershell -Command "if ('%version%' -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') { exit 1 }"
+echo ℹ️  Using version: %version%
+
+:: Validate version format (simple approach for better compatibility)
+echo %version% | findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
 if errorlevel 1 (
     echo ❌ Invalid version format. Use semantic versioning (e.g., 1.0.0)
+    echo ℹ️  Expected format: X.Y.Z (where X, Y, Z are numbers)
     exit /b 1
 )
+echo ✅ Version format validated
 
 :: Check if git is clean
-git diff --quiet && git diff --cached --quiet
-if errorlevel 1 (
-    echo ❌ Git working directory is not clean. Please commit or stash your changes.
+echo ℹ️  Checking git status...
+git diff --quiet
+set diff_result=%errorlevel%
+git diff --cached --quiet
+set cached_result=%errorlevel%
+
+if %diff_result% neq 0 (
+    echo ❌ Git working directory has unstaged changes. Please commit or stash your changes.
     echo.
     git status --short
     exit /b 1
 )
+
+if %cached_result% neq 0 (
+    echo ❌ Git working directory has staged changes. Please commit or stash your changes.
+    echo.
+    git status --short
+    exit /b 1
+)
+echo ✅ Git working directory clean
 
 :: Check if on main branch
 for /f %%i in ('git rev-parse --abbrev-ref HEAD') do set "current_branch=%%i"
