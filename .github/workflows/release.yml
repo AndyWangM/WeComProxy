@@ -189,6 +189,45 @@ jobs:
             }
           }
 
+    - name: Create source code archives
+      run: |
+        # Create clean source archive (exclude .git, node_modules, data, etc.)
+        mkdir -p release-assets
+
+        # Create tar.gz archive
+        tar --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='data/cache' \
+            --exclude='data/logs' \
+            --exclude='data/config/apps.json' \
+            --exclude='data/config/auth.json' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            --exclude='Thumbs.db' \
+            -czf "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.tar.gz" \
+            --transform "s,^,wecomproxy-${{ steps.version.outputs.version }}/," \
+            .
+
+        # Create zip archive for Windows users
+        zip -r "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.zip" . \
+            -x ".git/*" \
+            -x "node_modules/*" \
+            -x "data/cache/*" \
+            -x "data/logs/*" \
+            -x "data/config/apps.json" \
+            -x "data/config/auth.json" \
+            -x "*.log" \
+            -x ".DS_Store" \
+            -x "Thumbs.db"
+
+        # Create checksums
+        cd release-assets
+        sha256sum *.tar.gz *.zip > checksums.txt
+        cd ..
+
+        # List created files
+        ls -la release-assets/
+
     - name: Upload Release Assets
       uses: actions/github-script@v7
       with:
@@ -240,42 +279,3 @@ jobs:
         subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
         subject-digest: ${{ steps.build.outputs.digest }}
         push-to-registry: true
-
-    - name: Create source code archives
-      run: |
-        # Create clean source archive (exclude .git, node_modules, data, etc.)
-        mkdir -p release-assets
-
-        # Create tar.gz archive
-        tar --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='data/cache' \
-            --exclude='data/logs' \
-            --exclude='data/config/apps.json' \
-            --exclude='data/config/auth.json' \
-            --exclude='*.log' \
-            --exclude='.DS_Store' \
-            --exclude='Thumbs.db' \
-            -czf "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.tar.gz" \
-            --transform "s,^,wecomproxy-${{ steps.version.outputs.version }}/," \
-            .
-
-        # Create zip archive for Windows users
-        zip -r "release-assets/wecomproxy-${{ steps.version.outputs.version }}-source.zip" . \
-            -x ".git/*" \
-            -x "node_modules/*" \
-            -x "data/cache/*" \
-            -x "data/logs/*" \
-            -x "data/config/apps.json" \
-            -x "data/config/auth.json" \
-            -x "*.log" \
-            -x ".DS_Store" \
-            -x "Thumbs.db"
-
-        # Create checksums
-        cd release-assets
-        sha256sum *.tar.gz *.zip > checksums.txt
-        cd ..
-
-        # List created files
-        ls -la release-assets/
