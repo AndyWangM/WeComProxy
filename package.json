@@ -1,7 +1,7 @@
 {
   "name": "wecom-proxy",
-  "version": "1.0.1",
-  "description": "企业微信消息推送代理服务 - 支持多应用配置、Web管理界面和Docker部署",
+  "version": "1.0.2",
+  "description": "企业微信消息推送代理服�?- 支持多应用配置、Web管理界面和Docker部署",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
