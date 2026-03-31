@@ -47,14 +47,6 @@ class WeComClient {
       throw new Error('Message data must be an object');
     }
 
-    if (!data.sender || typeof data.sender !== 'string') {
-      throw new Error('sender field is required and must be a string');
-    }
-
-    if (!data.time || typeof data.time !== 'string') {
-      throw new Error('time field is required and must be a string');
-    }
-
     if (!data.content || typeof data.content !== 'string') {
       throw new Error('content field is required and must be a string');
     }
@@ -63,9 +55,15 @@ class WeComClient {
   formatMessage(messageData, appConfig) {
     const template = appConfig.message_format || '发送人：{sender}\\n时间：{time}\\n内容：{content}';
 
+    const now = new Date().toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+
     return template
-      .replace(/{sender}/g, messageData.sender)
-      .replace(/{time}/g, messageData.time)
+      .replace(/{sender}/g, messageData.sender || '')
+      .replace(/{time}/g, messageData.time || now)
       .replace(/{content}/g, messageData.content);
   }
 
@@ -162,21 +160,18 @@ class WeComClient {
 
   async sendViaProxy(proxyUrl, apiUrl, message) {
     // 通过代理服务器转发请求
-    const proxyPayload = {
-      method: 'POST',
-      url: apiUrl,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: message
-    };
+    // 代理服务器只需在 nginx 中将路径转发到目标域名，无需额外脚本
+    // 例：proxy_url = "http://proxy.your.com"
+    //     apiUrl   = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=xxx"
+    // 最终请求：POST http://proxy.your.com/cgi-bin/message/send?access_token=xxx
+    const { pathname, search } = new URL(apiUrl);
 
-    return fetch(proxyUrl, {
+    return fetch(`${proxyUrl}${pathname}${search}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(proxyPayload)
+      body: JSON.stringify(message)
     });
   }
 
